@@ -1,29 +1,47 @@
-// Coordenadas exactas de la Plaza de Bolívar, Bogotá, Colombia
-const plazaBolivar = [4.5981, -74.0758];
+const mapa = L.map('map').setView([4.7110, -74.0721], 13);
 
-// Inicializar el mapa
-const map = L.map('map').setView(plazaBolivar, 17); // Zoom ajustado para ver la plaza
-
-// Capa base: OpenStreetMap
+// Capa base
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(mapa);
 
-// Marcador en la Plaza de Bolívar
-L.marker(plazaBolivar)
-  .addTo(map)
-  .bindPopup('<b>Plaza de Bolívar</b><br>Corazón histórico de Bogotá, Colombia.')
-  .openPopup();
+// Cargar archivo GPX
+const gpx = new L.GPX('track.gpx', {
+  async: true,
+  marker_options: {
+    startIconUrl: 'https://unpkg.com/leaflet-gpx@1.5.1/pin-icon-start.png',
+    endIconUrl: 'https://unpkg.com/leaflet-gpx@1.5.1/pin-icon-end.png',
+    shadowUrl: 'https://unpkg.com/leaflet-gpx@1.5.1/pin-shadow.png',
+    wptIconUrls: {
+      '': 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png'
+    }
+  },
+  polyline_options: {
+    color: 'blue',
+    weight: 4,
+    opacity: 0.75
+  }
+})
+.on('loaded', function(e) {
+  mapa.fitBounds(e.target.getBounds());
+})
+.on('addpoint', function(e) {
+  const point = e.point;
+  const marker = e.marker;
 
-// Círculo de referencia (50 metros de radio)
-L.circle(plazaBolivar, {
-  radius: 50,
-  color: 'blue',
-  fillColor: '#30f',
-  fillOpacity: 0.2,
-  weight: 2
-}).addTo(map);
+  if (!marker) return;
 
-// Confirmación en consola
-console.log("✅ Mapa cargado correctamente en la Plaza de Bolívar, Bogotá.");
+  // Obtener el número del punto del nombre, por ejemplo "Punto 2" -> 2
+  const match = (point.name || '').match(/(\d+)/);
+  const index = match ? parseInt(match[1]) : null;
+  const fotoRuta = index ? `fotos/foto${index}.jpg` : null;
+
+  let popup = `<b>${point.name || 'Punto'}</b>`;
+  if (point.desc) popup += `<br>${point.desc}`;
+  if (fotoRuta) {
+    popup += `<br><img src="${fotoRuta}" style="width:120px; border-radius:8px;">`;
+  }
+
+  marker.bindPopup(popup);
+})
+.addTo(mapa);
